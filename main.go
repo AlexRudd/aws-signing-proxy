@@ -104,7 +104,7 @@ func main() {
 
 	// Validate target URL
 	if len(*targetFlag) == 0 {
-		fmt.Println("Requires target URL to proxy to, please us the -target flag")
+		fmt.Println("Requires target URL to proxy to. Please use the -target flag")
 		return
 	}
 	targetURL, err := url.Parse(*targetFlag)
@@ -114,28 +114,26 @@ func main() {
 	}
 
 	// Get credentials:
-	// Looks in environemnt variables, credentials file...
+	// Environment variables > local aws config file > ec2 role
 	sess := session.New()
-	creds := sess.Config.Credentials
-	// Validate creds
-	if _, err := creds.Get(); err != nil {
-		// Couldn't find creds locally, checking metadata
-		metaSvc := ec2metadata.New(sess)
-		p := &ec2rolecreds.EC2RoleProvider{
-			Client: metaSvc,
-		}
-		creds = credentials.NewCredentials(p)
-		// Validate we got some credentials
-		if _, err = creds.Get(); err != nil {
-			// We couldn't get any credentials
-			fmt.Println(err)
-			return
-		}
+	creds := credentials.NewChainCredentials(
+		[]credentials.Provider{
+			&credentials.EnvProvider{},
+			&credentials.SharedCredentialsProvider{},
+			&ec2rolecreds.EC2RoleProvider{
+				Client: ec2metadata.New(sess),
+			},
+		})
+	if _, err = creds.Get(); err != nil {
+		// We couldn't get any credentials
+		fmt.Println(err)
+		return
 	}
 
-	// Region order of precident: regionFlag > os.Getenv("AWS_REGION") > session region > "us-west-2"
-	var region string
-	if region = *regionFlag; len(region) == 0 {
+	// Region order of precident:
+	// regionFlag > os.Getenv("AWS_REGION") > session region > "us-west-2"
+	region := *regionFlag
+	if len(region) == 0 {
 		if region = *sess.Config.Region; len(region) == 0 {
 			region = "us-west-2"
 		}
