@@ -5,14 +5,12 @@ aws-signing-proxy is a proxy service, written in go, for automatically signing r
 
 ## Usage
 
-Run as a binary:
 ```
 export AWS_ACCESS_KEY_ID=<xxx>
 export AWS_SECRET_ACCESS_KEY=<xxx>
 export AWS_REGION=<xxx>
 ./aws-signing-proxy -target https://search-my-cluster.us-west-2.es.amazonaws.com
 ```
-
 Run as a Docker container:
 ```
 docker run --name=aws-signing-proxy \
@@ -24,7 +22,12 @@ docker run --name=aws-signing-proxy \
   -target https://search-my-cluster.us-west-2.es.amazonaws.com
 ```
 
-If no environment variables are specified, the application will look for an [IAM Instance Profile Role](http://docs.amazonaws.cn/en_us/IAM/latest/UserGuide/id_roles_use_switch-role-ec2.html) in its ec2 Metadata.
+### Credential chain
+
+AWS credentials are looked up in the following order:
+1. Environment variable accessible to the app
+2. The `~/.aws/credentials` config file's default profile
+3. Any [IAM instance profile role](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2.html) assigned to the instance.
 
 ## Notes, Tips
 
